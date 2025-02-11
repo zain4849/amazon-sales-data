@@ -82,7 +82,7 @@ def plot_correlation_heatmap(data):
     corr_matrix = data[["discounted_price", "actual_price", "discount_percentage", "rating", "rating_count", "price_difference"]].corr()
     sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
     ax.set_title("Correlation Heatmap - Feature Selection")
-    st.pyplot(fig, key="correlation_heatmap_1")
+    st.pyplot(fig)  # ❌ Removed the incorrect `key`
 
 def plot_manual_feature_importance():
     feature_names = ["Discount %", "Rating", "Rating Count", "Price Difference"]
