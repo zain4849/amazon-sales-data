@@ -5,12 +5,11 @@ import joblib
 import tensorflow as tf
 from tensorflow import keras
 
-# Load trained Neural Network model and necessary components
+# Loading saved NN model and necessary components
 model = keras.models.load_model("demand_prediction_nn.keras")
 scaler = joblib.load("scaler.pkl")
 encoder = joblib.load("category_encoder.pkl")
 
-# Streamlit UI
 st.title("📊 Predict Amazon Product Demand")
 
 st.write("""
@@ -18,7 +17,7 @@ st.write("""
 This model predicts whether a product will have **High or Low Demand** based on pricing, discounts, and reviews.
 """)
 
-# ✅ Category Dropdown (Replacing text input)
+# Category Dropdown
 category_options = ["Electronics", "Clothing", "Home & Kitchen", "Books", "Beauty", "Toys", "Sports", "Other"]
 category = st.selectbox("Select Product Category:", category_options)
 
@@ -43,35 +42,30 @@ with col2:
     rating = st.number_input("Product Rating (1-5)", min_value=1.0, max_value=5.0, value=4.0)
     rating_count = st.number_input("Number of Reviews", min_value=0, value=1000)
 
-# Calculate price difference
+# Price difference
 price_difference = actual_price - discounted_price
 
-# ✅ Predict Demand when button is clicked
+# Predict Demand when button is clicked
 if st.button("Predict Demand"):
-    # Create input array
     input_data = np.array([[discount_percentage, rating, rating_count, category_encoded, price_difference]])
     
-    # Scale input data
     input_scaled = scaler.transform(input_data)
     
-    # Make prediction
     predicted_prob = model.predict(input_scaled)[0][0]
     
-    # Convert prediction to High or Low demand
+    # Converting prediction to High or Low demand
     predicted_demand = "High" if predicted_prob >= 0.5 else "Low"
     
-    # ✅ Display the result
     st.success(f"📌 Predicted Demand Level: **{predicted_demand}**")
     st.write(f"🧠 Model Confidence: **{predicted_prob:.2%}**")
 
-    # ✅ Display explanation
     st.write("""
     **🔹 Interpretation:**  
     - If demand is **High**, the product is likely to be **popular and sell well**.  
     - If demand is **Low**, it may not attract enough buyers. Consider **adjusting price, discounts, or marketing strategies**.
     """)
 
-# 📊 Model Performance Summary
+# Model Performance Summary
 st.write("### 📈 Model Performance Metrics:")
 st.write("""
 ✅ **Accuracy:** 98.98%  
@@ -83,5 +77,5 @@ st.write("""
 
 st.write("⚡ **This model was trained using a Neural Network to optimize demand prediction!**")
 
-# ✅ Footer
+# Footer
 st.write("🚀 **Built with Streamlit & TensorFlow** by Zain Ali  🎯")
