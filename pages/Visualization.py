@@ -56,7 +56,7 @@ def load_and_clean_data(filepath):
     return df
 
 # Load data
-data = load_and_clean_data("./cleaned-ds_amazon.csv")
+data = load_and_clean_data("./amazon.csv")
 
 # Streamlit Title
 st.title("📊 Amazon Product Data Visualization")

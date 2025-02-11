@@ -84,4 +84,4 @@ st.write("""
 st.write("⚡ **This model was trained using a Neural Network to optimize demand prediction!**")
 
 # ✅ Footer
-st.write("🚀 **Built with Streamlit & TensorFlow** | Data Science by [Your Name] 🎯")
+st.write("🚀 **Built with Streamlit & TensorFlow** by Zain Ali  🎯")
