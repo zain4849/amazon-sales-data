@@ -5,13 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import joblib  # For loading ML models
-import tensorflow as tf
-from tensorflow import keras
-from sklearn.inspection import permutation_importance
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+import streamlit_shadcn_ui as ui
 
-# Streamlit Configuration
 st.set_page_config(layout="wide")
 
 plt.style.use("dark_background")
@@ -59,14 +54,10 @@ def load_and_clean_data(filepath):
     # Feature Engineering
     df["price_difference"] = df["actual_price"] - df["discounted_price"]
 
-    # Encode Category
-    encoder = LabelEncoder()
-    df["category_encoded"] = encoder.fit_transform(df["category_top"])
-
-    return df, encoder
+    return df
 
 # Load data
-data, encoder = load_and_clean_data("./amazon.csv")
+data = load_and_clean_data("./amazon.csv")
 
 st.title("Amazon Product Data Visualization")
 
@@ -74,58 +65,34 @@ st.title("Amazon Product Data Visualization")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Total Products", data.shape[0])
+    ui.metric_card("Total Products", data.shape[0], "Total number of products in the dataset")
 
 with col2:
-    st.metric("Average Rating", round(data["rating"].mean(), 2))
+    ui.metric_card("Average Rating", round(data["rating"].mean(), 2), "Average rating of all products")
 
 with col3:
-    st.metric("Top Category", data["category_top"].mode()[0])
+    ui.metric_card("Top Category", data["category_top"].mode()[0], "Most common product category")
 
 with col4:
-    st.metric("Average Rating Count", int(data["rating_count"].mean()))
+    ui.metric_card("Average Rating Count", int(data["rating_count"].mean()), "Average rating count")
 
-# Feature Importance Analysis
-def compute_feature_importance():
-    try:
-        # Load trained XGBoost model
-        model = joblib.load("final_demand_prediction_xgb.pkl")
-        feature_importance = model.feature_importances_
-        importance_method = "XGBoost Feature Importance"
+# Feature Selection Visuals
+def plot_correlation_heatmap(data):
+    fig, ax = plt.subplots(figsize=(8, 6))
+    corr_matrix = data[["discounted_price", "actual_price", "discount_percentage", "rating", "rating_count", "price_difference"]].corr()
+    sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
+    ax.set_title("Correlation Heatmap - Feature Selection")
+    st.pyplot(fig)
 
-    except FileNotFoundError:
-        # Fallback to Permutation Importance on Neural Network
-        X_features = ["discount_percentage", "rating", "rating_count", "category_encoded", "price_difference"]
-        X = data[X_features]
-        y = (data["rating_count"] >= data["rating_count"].median()).astype(int)  # High vs. Low Demand
-        
-        # Standardization
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
+def plot_manual_feature_importance():
+    feature_names = ["Discount %", "Rating", "Rating Count", "Price Difference"]
+    feature_importance = [0.85, 0.70, 0.90, 0.80]  # Manually estimated importance
 
-        # Load trained Neural Network
-        model = keras.models.load_model("demand_prediction_nn.keras")
-
-        # Compute Permutation Importance
-        perm_importance = permutation_importance(model, X_scaled, y, scoring="accuracy", random_state=42)
-        feature_importance = perm_importance.importances_mean
-        importance_method = "Permutation Importance (Neural Network)"
-
-    return feature_importance, importance_method, X_features
-
-# Get feature importance
-feature_importance, importance_method, feature_names = compute_feature_importance()
-
-# Function to plot feature importance
-def plot_feature_importance():
-    fig = px.bar(x=feature_importance, y=feature_names, orientation="h",
-                 title=f"Feature Importance in Demand Prediction ({importance_method})",
-                 labels={"x": "Importance Score", "y": "Features"},
-                 template="plotly_dark")
-
+    fig = px.bar(x=feature_names, y=feature_importance, text=feature_importance, labels={"x": "Features", "y": "Importance Score"},
+                 title="Feature Selection Importance (Manually Determined)", template="plotly_dark")
     st.plotly_chart(fig)
 
-# Visualization Functions
+# Visualization Functions (Your existing ones)
 def plot_rating_distribution(data):
     fig = px.histogram(data, x="rating", nbins=10, marginal="box", title="Distribution of Product Ratings", template="plotly_dark")
     st.plotly_chart(fig)
@@ -170,10 +137,10 @@ with col2:
 
 with col3:
     with st.container(border=True):
-        st.subheader("Feature Importance in Demand Prediction")
-        plot_feature_importance()
+        st.subheader("Feature Selection Importance (Manual)")
+        plot_manual_feature_importance()
 
-col1, col2 = st.columns([1,1])
+col1, col2, col3 = st.columns([1,1,1])
 
 with col1:
     with st.container(border=True):
@@ -184,6 +151,11 @@ with col2:
     with st.container(border=True):
         st.subheader("Average Profit Margin by Category")
         plot_avg_profit_margin(data)
+
+with col3:
+    with st.container(border=True):
+        st.subheader("Correlation Heatmap - Feature Selection")
+        plot_correlation_heatmap(data)
 
 with st.container(border=True):
     st.subheader("Product Distribution by Top-Level Category")
