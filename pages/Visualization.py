@@ -5,9 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-# from wordcloud import WordCloud
-import streamlit_shadcn_ui as ui
+import joblib  # For loading ML models
+import tensorflow as tf
+from tensorflow import keras
+from sklearn.inspection import permutation_importance
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 
+# Streamlit Configuration
 st.set_page_config(layout="wide")
 
 plt.style.use("dark_background")
@@ -22,7 +26,7 @@ plt.rcParams.update({
     "figure.facecolor": "#181818"
 })
 
-# Loading and clean the dataset
+# Load and clean the dataset
 @st.cache_data
 def load_and_clean_data(filepath):
     df = pd.read_csv(filepath)
@@ -51,30 +55,77 @@ def load_and_clean_data(filepath):
     
     # Profit margin column
     df["profit_margin"] = df["actual_price"] - df["discounted_price"]
-    
-    return df
 
-# Loading data
-data = load_and_clean_data("./amazon.csv")
+    # Feature Engineering
+    df["price_difference"] = df["actual_price"] - df["discounted_price"]
 
-st.title("📊 Amazon Product Data Visualization")
+    # Encode Category
+    encoder = LabelEncoder()
+    df["category_encoded"] = encoder.fit_transform(df["category_top"])
+
+    return df, encoder
+
+# Load data
+data, encoder = load_and_clean_data("./amazon.csv")
+
+st.title("Amazon Product Data Visualization")
 
 # Metrics Summary
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    ui.metric_card("Total Products", data.shape[0], "Total number of products in the dataset")
+    st.metric("Total Products", data.shape[0])
 
 with col2:
-    ui.metric_card("Average Rating", round(data["rating"].mean(), 2), "Average rating of all products")
+    st.metric("Average Rating", round(data["rating"].mean(), 2))
 
 with col3:
-    ui.metric_card("Top Category", data["category_top"].mode()[0], "Most common product category")
+    st.metric("Top Category", data["category_top"].mode()[0])
 
 with col4:
-    ui.metric_card("Average Rating Count", int(data["rating_count"].mean()), "Average rating count")
+    st.metric("Average Rating Count", int(data["rating_count"].mean()))
 
-# Visualization Functions with Gastly Theme Adjustments
+# Feature Importance Analysis
+def compute_feature_importance():
+    try:
+        # Load trained XGBoost model
+        model = joblib.load("final_demand_prediction_xgb.pkl")
+        feature_importance = model.feature_importances_
+        importance_method = "XGBoost Feature Importance"
+
+    except FileNotFoundError:
+        # Fallback to Permutation Importance on Neural Network
+        X_features = ["discount_percentage", "rating", "rating_count", "category_encoded", "price_difference"]
+        X = data[X_features]
+        y = (data["rating_count"] >= data["rating_count"].median()).astype(int)  # High vs. Low Demand
+        
+        # Standardization
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        # Load trained Neural Network
+        model = keras.models.load_model("demand_prediction_nn.keras")
+
+        # Compute Permutation Importance
+        perm_importance = permutation_importance(model, X_scaled, y, scoring="accuracy", random_state=42)
+        feature_importance = perm_importance.importances_mean
+        importance_method = "Permutation Importance (Neural Network)"
+
+    return feature_importance, importance_method, X_features
+
+# Get feature importance
+feature_importance, importance_method, feature_names = compute_feature_importance()
+
+# Function to plot feature importance
+def plot_feature_importance():
+    fig = px.bar(x=feature_importance, y=feature_names, orientation="h",
+                 title=f"Feature Importance in Demand Prediction ({importance_method})",
+                 labels={"x": "Importance Score", "y": "Features"},
+                 template="plotly_dark")
+
+    st.plotly_chart(fig)
+
+# Visualization Functions
 def plot_rating_distribution(data):
     fig = px.histogram(data, x="rating", nbins=10, marginal="box", title="Distribution of Product Ratings", template="plotly_dark")
     st.plotly_chart(fig)
@@ -92,7 +143,7 @@ def plot_category_distribution(data):
 def plot_price_vs_discount(data):
     fig = px.scatter(data, x="actual_price", y="discount_percentage", color="category_top", size="rating_count", 
                      title="Price vs Discount Percentage", template="plotly_dark")
-    fig.update_layout(margin=dict(l=100, r=100, b=100, t=100),height=485)
+    fig.update_layout(margin=dict(l=100, r=100, b=100, t=100), height=485)
     st.plotly_chart(fig)
 
 def plot_avg_profit_margin(data):
@@ -105,21 +156,22 @@ def plot_avg_profit_margin(data):
     st.plotly_chart(fig)
 
 # Layout for Visualizations
-col1, col2 = st.columns([1,2])
+col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
     with st.container(border=True):
         st.subheader("Distribution of Product Ratings")
         plot_rating_distribution(data)
 
-
 with col2:
     with st.container(border=True):
         st.subheader("Price vs. Discount Percentage")
         plot_price_vs_discount(data)
 
-
-
+with col3:
+    with st.container(border=True):
+        st.subheader("Feature Importance in Demand Prediction")
+        plot_feature_importance()
 
 col1, col2 = st.columns([1,1])
 
@@ -128,13 +180,10 @@ with col1:
         st.subheader("Correlation Heatmap")
         plot_correlation_heatmap(data)
 
-
 with col2:
     with st.container(border=True):
         st.subheader("Average Profit Margin by Category")
         plot_avg_profit_margin(data)
-
-
 
 with st.container(border=True):
     st.subheader("Product Distribution by Top-Level Category")
