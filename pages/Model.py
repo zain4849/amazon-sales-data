@@ -18,24 +18,30 @@ st.write("""
 This model predicts whether a product will have **High or Low Demand** based on pricing, discounts, and reviews.
 """)
 
-# ✅ Input fields for user
-col1, col2 = st.columns(2)
-
-with col1:
-    discounted_price = st.number_input("Discounted Price (₹)", min_value=0.0, value=500.0)
-    actual_price = st.number_input("Actual Price (₹)", min_value=0.0, value=1000.0)
-    discount_percentage = st.number_input("Discount Percentage (%)", min_value=0.0, max_value=100.0, value=50.0)
-
-with col2:
-    rating = st.number_input("Product Rating (1-5)", min_value=1.0, max_value=5.0, value=4.0)
-    rating_count = st.number_input("Number of Reviews", min_value=0, value=1000)
-    category = st.text_input("Product Category (e.g., Electronics, Clothing, etc.)", value="Electronics")
+# ✅ Category Dropdown (Replacing text input)
+category_options = ["Electronics", "Clothing", "Home & Kitchen", "Books", "Beauty", "Toys", "Sports", "Other"]
+category = st.selectbox("Select Product Category:", category_options)
 
 # Convert category to numerical encoding
 if category in encoder.classes_:
     category_encoded = encoder.transform([category])[0]
 else:
     category_encoded = 0  # Assigning 0 if category is not recognized
+
+# ✅ Discount Percentage Dropdown (Common discount levels)
+discount_options = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
+discount_percentage = st.selectbox("Select Discount Percentage (%):", discount_options)
+
+# ✅ Number Inputs for Other Features
+col1, col2 = st.columns(2)
+
+with col1:
+    discounted_price = st.number_input("Discounted Price (₹)", min_value=0.0, value=500.0)
+    actual_price = st.number_input("Actual Price (₹)", min_value=0.0, value=1000.0)
+
+with col2:
+    rating = st.number_input("Product Rating (1-5)", min_value=1.0, max_value=5.0, value=4.0)
+    rating_count = st.number_input("Number of Reviews", min_value=0, value=1000)
 
 # Calculate price difference
 price_difference = actual_price - discounted_price
