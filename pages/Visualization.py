@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import joblib
+# from wordcloud import WordCloud
 import streamlit_shadcn_ui as ui
 
 st.set_page_config(layout="wide")
@@ -22,42 +22,42 @@ plt.rcParams.update({
     "figure.facecolor": "#181818"
 })
 
-# Load dataset
+# Loading and clean the dataset
 @st.cache_data
 def load_and_clean_data(filepath):
     df = pd.read_csv(filepath)
-
+    
     # Drop unnecessary columns
     columns_to_drop = ["img_link", "product_link", "user_id", "user_name", "review_id", "review_title", "review_content"]
     df.drop(columns=columns_to_drop, errors="ignore", inplace=True)
-
+    
     # Extract main category
     df["category_top"] = df["category"].astype(str).apply(lambda x: x.split('|')[0])
-
+    
     # Clean and convert numeric columns
     for col in ["discounted_price", "actual_price", "rating_count"]:
         df[col] = df[col].astype(str).str.replace(r"[^\d.]", "", regex=True)
         df[col] = pd.to_numeric(df[col], errors="coerce")
-
+    
     if "discount_percentage" in df.columns:
         df["discount_percentage"] = df["discount_percentage"].astype(str).str.replace("%", "").astype(float)
-
+    
     df["rating"] = pd.to_numeric(df["rating"], errors="coerce")
-
-    # Handle missing values
+    
+    # Handling missing values
     df["rating"].fillna(df["rating"].mean(), inplace=True)
     df["rating_count"].fillna(df["rating_count"].median(), inplace=True)
     df.dropna(inplace=True)
-
+    
     # Profit margin column
     df["profit_margin"] = df["actual_price"] - df["discounted_price"]
-
+    
     return df
 
-# Load data
+# Loading data
 data = load_and_clean_data("./amazon.csv")
 
-st.title("Amazon Product Data Visualization")
+st.title("📊 Amazon Product Data Visualization")
 
 # Metrics Summary
 col1, col2, col3, col4 = st.columns(4)
@@ -74,23 +74,7 @@ with col3:
 with col4:
     ui.metric_card("Average Rating Count", int(data["rating_count"].mean()), "Average rating count")
 
-# Load trained model for feature importance
-@st.cache_resource
-def load_model():
-    return joblib.load("final_demand_prediction_xgb.pkl")
-
-model = load_model()
-
-# Get feature importance
-def plot_feature_importance():
-    feature_names = ["Discount %", "Rating", "Rating Count", "Category", "Price Difference"]
-    feature_importance = model.feature_importances_
-
-    fig = px.bar(x=feature_names, y=feature_importance, labels={'x': "Feature", 'y': "Importance"},
-                 title="Feature Importance in Demand Prediction", template="plotly_dark")
-    st.plotly_chart(fig)
-
-# Visualization Functions
+# Visualization Functions with Gastly Theme Adjustments
 def plot_rating_distribution(data):
     fig = px.histogram(data, x="rating", nbins=10, marginal="box", title="Distribution of Product Ratings", template="plotly_dark")
     st.plotly_chart(fig)
@@ -108,7 +92,7 @@ def plot_category_distribution(data):
 def plot_price_vs_discount(data):
     fig = px.scatter(data, x="actual_price", y="discount_percentage", color="category_top", size="rating_count", 
                      title="Price vs Discount Percentage", template="plotly_dark")
-    fig.update_layout(margin=dict(l=100, r=100, b=100, t=100), height=485)
+    fig.update_layout(margin=dict(l=100, r=100, b=100, t=100),height=485)
     st.plotly_chart(fig)
 
 def plot_avg_profit_margin(data):
@@ -121,34 +105,36 @@ def plot_avg_profit_margin(data):
     st.plotly_chart(fig)
 
 # Layout for Visualizations
-col1, col2, col3 = st.columns([1, 1, 1])
+col1, col2 = st.columns([1,2])
 
 with col1:
     with st.container(border=True):
         st.subheader("Distribution of Product Ratings")
         plot_rating_distribution(data)
 
+
 with col2:
     with st.container(border=True):
         st.subheader("Price vs. Discount Percentage")
         plot_price_vs_discount(data)
 
-with col3:
-    with st.container(border=True):
-        st.subheader("Feature Importance in Demand Prediction")
-        plot_feature_importance()
 
-col1, col2 = st.columns([1, 1])
+
+
+col1, col2 = st.columns([1,1])
 
 with col1:
     with st.container(border=True):
         st.subheader("Correlation Heatmap")
         plot_correlation_heatmap(data)
 
+
 with col2:
     with st.container(border=True):
         st.subheader("Average Profit Margin by Category")
         plot_avg_profit_margin(data)
+
+
 
 with st.container(border=True):
     st.subheader("Product Distribution by Top-Level Category")
