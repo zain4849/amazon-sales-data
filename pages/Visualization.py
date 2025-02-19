@@ -81,7 +81,7 @@ def plot_rating_distribution(data):
     st.plotly_chart(fig)
 
 def plot_correlation_heatmap(data):
-    corr_matrix = data[["discounted_price", "actual_price", "rating", "rating_count"]].corr()
+    corr_matrix = data[["discounted_price", "actual_price", "rating", "rating_count"]].corr().round(1)
     fig = px.imshow(corr_matrix, text_auto=True, title="Correlation Heatmap", template="plotly_dark")
     st.plotly_chart(fig)
 
@@ -97,12 +97,16 @@ def plot_price_vs_discount(data):
     st.plotly_chart(fig)
 
 def plot_avg_profit_margin(data):
-    avg_profit_margin = data.groupby("category_top")["profit_margin"].mean().reset_index()
-    fig = px.bar(avg_profit_margin, x="category_top", y="profit_margin", color="profit_margin",
-                 title="Average Profit Margin by Category",
-                 labels={"category_top": "Category", "profit_margin": "Profit Margin (₹)"},
-                 text="profit_margin",
-                 template="plotly_dark")
+    avg_profit_margin = data.groupby("category_top")["profit_margin"].mean().round(0).astype(int).reset_index()
+    fig = px.bar(
+        avg_profit_margin, 
+        x="category_top", 
+        y="profit_margin", 
+        color="profit_margin",
+        title="Average Profit Margin by Category",
+        labels={"category_top": "Category", "profit_margin": "Profit Margin (₹)"},
+        text="profit_margin"
+    )
     st.plotly_chart(fig)
 
 # Layout for Visualizations
