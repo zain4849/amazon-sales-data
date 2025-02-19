@@ -75,7 +75,7 @@ with col3:
 with col4:
     ui.metric_card("Average Rating Count", int(data["rating_count"].mean()), "Average rating count")
 
-# Visualization Functions with Gastly Theme Adjustments
+# Visualisations
 def plot_rating_distribution(data):
     fig = px.histogram(data, x="rating", nbins=10, marginal="box", title="Distribution of Product Ratings", template="plotly_dark")
     st.plotly_chart(fig)
