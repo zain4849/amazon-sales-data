@@ -75,7 +75,7 @@ with col3:
 with col4:
     ui.metric_card("Average Rating Count", int(data["rating_count"].mean()), "Average rating count")
 
-# Visualisations
+# Visualizations
 def plot_rating_distribution(data):
     fig = px.histogram(data, x="rating", nbins=10, marginal="box", title="Distribution of Product Ratings", template="plotly_dark")
     st.plotly_chart(fig)
@@ -83,11 +83,6 @@ def plot_rating_distribution(data):
 def plot_correlation_heatmap(data):
     corr_matrix = data[["discounted_price", "actual_price", "rating", "rating_count"]].corr().round(1)
     fig = px.imshow(corr_matrix, text_auto=True, title="Correlation Heatmap", template="plotly_dark")
-    st.plotly_chart(fig)
-
-def plot_category_distribution(data):
-    fig = px.bar(data["category_top"].value_counts().head(10), x=data["category_top"].value_counts().head(10).index, 
-                 y=data["category_top"].value_counts().head(10).values, title="Product Distribution by Top-Level Category", template="plotly_dark")
     st.plotly_chart(fig)
 
 def plot_price_vs_discount(data):
@@ -109,6 +104,21 @@ def plot_avg_profit_margin(data):
     )
     st.plotly_chart(fig)
 
+def plot_category_distribution_donut(data):
+    # Get top 10 product categories
+    top_categories = data["category_top"].value_counts().head(10)
+
+    # Create a Plotly Donut Chart
+    fig = px.pie(
+        names=top_categories.index,
+        values=top_categories.values,
+        title="Product Distribution by Category (Donut Chart)",
+        labels={"values": "Number of Products", "names": "Category"},
+        hole=0.4,  # Creates donut effect
+        color_discrete_sequence=px.colors.qualitative.Pastel
+    )
+    st.plotly_chart(fig)
+
 # Layout for Visualizations
 col1, col2 = st.columns([1,2])
 
@@ -117,14 +127,10 @@ with col1:
         st.subheader("Distribution of Product Ratings")
         plot_rating_distribution(data)
 
-
 with col2:
     with st.container(border=True):
         st.subheader("Price vs. Discount Percentage")
         plot_price_vs_discount(data)
-
-
-
 
 col1, col2 = st.columns([1,1])
 
@@ -133,14 +139,12 @@ with col1:
         st.subheader("Correlation Heatmap")
         plot_correlation_heatmap(data)
 
-
 with col2:
     with st.container(border=True):
         st.subheader("Average Profit Margin by Category")
         plot_avg_profit_margin(data)
 
-
-
+# **Replaced Bar Chart with Donut Chart**
 with st.container(border=True):
-    st.subheader("Product Distribution by Top-Level Category")
-    plot_category_distribution(data)
+    st.subheader("Product Distribution by Top-Level Category (Donut Chart)")
+    plot_category_distribution_donut(data)
